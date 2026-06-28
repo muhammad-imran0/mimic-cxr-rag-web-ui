@@ -5,6 +5,7 @@ import PipelineTracker from './components/PipelineTracker';
 import RagEvidenceMatrix from './components/RagEvidenceMatrix';
 import StreamingReport from './components/StreamingReport';
 import { useDiagnose } from './hooks/useDiagnose';
+import { API_BASE } from './config';
 import { Stethoscope, ShieldCheck, ImageIcon } from 'lucide-react';
 
 export default function App() {
@@ -21,7 +22,7 @@ export default function App() {
     checkHealth,
     uploadedImagePreview,
     uploadedFileName
-  } = useDiagnose();
+  } = useDiagnose(API_BASE);
 
   const hasActiveDiagnosis = uploadedImagePreview || isLoading || report || retrievedRecords.length > 0;
 
