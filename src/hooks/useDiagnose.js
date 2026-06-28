@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { API_BASE } from "../config";
 
-const FALLBACK_BACKEND_URL = "https://imranyasin7866-mimic-cxr-rag-api.hf.space";
+const FALLBACK_BACKEND_URL = "http://localhost:8000";
 
 export function useDiagnose(rawBaseUrl = API_BASE) {
   // Ensure we never use an empty string or local origin when deployed
@@ -79,9 +79,9 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
 
             if (data.type === "status") {
               setStatus(data.content);
-              if (data.content.includes("BiomedCLIP")) setCurrentStep(1);
-              else if (data.content.includes("Qdrant")) setCurrentStep(2);
-              else if (data.content.includes("Synthesizing")) setCurrentStep(3);
+              if (data.content.includes("BiomedCLIP") || data.content.includes("Encoding")) setCurrentStep(1);
+              else if (data.content.includes("Qdrant") || data.content.includes("Searching")) setCurrentStep(2);
+              else if (data.content.includes("Synthesizing") || data.content.includes("report") || data.content.includes("LLM")) setCurrentStep(3);
             } else if (data.type === "retrieval_context" || data.type === "matches") {
               setRetrievedRecords(data.records || []);
             } else if (data.type === "token") {

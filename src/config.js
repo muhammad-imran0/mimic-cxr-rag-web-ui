@@ -1,2 +1,2 @@
-// Direct Production HuggingFace Space Backend URL
-export const API_BASE = 'https://imranyasin7866-mimic-cxr-rag-api.hf.space';
+// Local FastAPI Backend URL
+export const API_BASE = 'http://localhost:8000';
