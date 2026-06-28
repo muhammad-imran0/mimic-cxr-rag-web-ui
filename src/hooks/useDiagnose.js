@@ -1,7 +1,12 @@
 import { useState, useCallback } from "react";
 import { API_BASE } from "../config";
 
-export function useDiagnose(baseUrl = API_BASE) {
+const FALLBACK_BACKEND_URL = "https://imranyasin7866-mimic-cxr-rag-api.hf.space";
+
+export function useDiagnose(rawBaseUrl = API_BASE) {
+  // Ensure we never use an empty string or local origin when deployed
+  const baseUrl = (rawBaseUrl && rawBaseUrl.trim() !== "") ? rawBaseUrl : FALLBACK_BACKEND_URL;
+
   const [status, setStatus] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
   const [retrievedRecords, setRetrievedRecords] = useState([]);
@@ -14,7 +19,8 @@ export function useDiagnose(baseUrl = API_BASE) {
 
   const checkHealth = useCallback(async () => {
     try {
-      const res = await fetch(`${baseUrl}/health`, { method: "GET" });
+      const targetUrl = `${baseUrl.replace(/\/$/, '')}/health`;
+      const res = await fetch(targetUrl, { method: "GET" });
       if (res.ok) {
         setIsServerHealthy(true);
         return true;
@@ -44,7 +50,8 @@ export function useDiagnose(baseUrl = API_BASE) {
     formData.append("file", file);
 
     try {
-      const response = await fetch(`${baseUrl}/api/v1/diagnose`, {
+      const targetEndpoint = `${baseUrl.replace(/\/$/, '')}/api/v1/diagnose`;
+      const response = await fetch(targetEndpoint, {
         method: "POST",
         body: formData,
       });
