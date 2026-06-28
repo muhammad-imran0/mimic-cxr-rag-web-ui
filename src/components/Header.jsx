@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Activity, Server, Stethoscope, Wifi, WifiOff } from 'lucide-react';
+import { API_BASE } from '../config';
 
 export default function Header({ isLiveServer, onToggleLiveServer, isServerHealthy, onCheckHealth }) {
   
@@ -44,18 +45,18 @@ export default function Header({ isLiveServer, onToggleLiveServer, isServerHealt
                   ? 'bg-indigo-600 text-white border-indigo-500' 
                   : 'bg-gray-900 text-gray-300 border-gray-800 hover:bg-gray-800'
               }`}
-              title="FastAPI endpoint http://localhost:8000 status"
+              title={`FastAPI endpoint ${API_BASE} status`}
             >
               <Server className="w-4 h-4 text-white animate-pulse" />
-              <span>{isLiveServer ? 'FastAPI Connected' : 'Simulated Engine'}</span>
+              <span>{isLiveServer ? 'HuggingFace Space API' : 'Simulated Engine'}</span>
               
               {isServerHealthy ? (
                 <span className="flex items-center text-[11px] text-emerald-300 font-mono bg-emerald-950 px-2.5 py-0.5 rounded-lg border border-emerald-800 font-extrabold ml-1">
-                  <Wifi className="w-3 h-3 mr-1 text-emerald-400" /> 8000
+                  <Wifi className="w-3 h-3 mr-1 text-emerald-400" /> Live
                 </span>
               ) : (
                 <span className="flex items-center text-[11px] text-amber-300 font-mono bg-amber-950 px-2.5 py-0.5 rounded-lg border border-amber-800 font-extrabold ml-1">
-                  <WifiOff className="w-3 h-3 mr-1 text-amber-400" /> Offline
+                  <WifiOff className="w-3 h-3 mr-1 text-amber-400" /> Connecting
                 </span>
               )}
             </button>

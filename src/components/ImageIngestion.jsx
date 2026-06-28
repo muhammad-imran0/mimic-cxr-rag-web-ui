@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UploadCloud, Loader2, Sparkles } from 'lucide-react';
+import { API_BASE } from '../config';
 
 export default function ImageIngestion({ diagnoseImage, liveStatus, isLoadingLive }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -71,7 +72,7 @@ export default function ImageIngestion({ diagnoseImage, liveStatus, isLoadingLiv
 
         <div className="mt-6 flex items-center space-x-2 text-xs font-mono font-semibold text-indigo-300 bg-gray-950 px-4 py-2 rounded-xl border border-gray-800 shadow-sm">
           <Sparkles className="w-4 h-4 text-indigo-400" />
-          <span>Endpoint: POST http://localhost:8000/api/v1/diagnose</span>
+          <span>Endpoint: POST {API_BASE}/api/v1/diagnose</span>
         </div>
       </div>
 

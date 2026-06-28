@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Database, ShieldCheck, FileText, Sparkles, Image as ImageIcon, CheckCircle2, ExternalLink, X, ZoomIn } from 'lucide-react';
+import { API_BASE } from '../config';
 
-export default function RagEvidenceMatrix({ liveRecords, baseUrl = "http://localhost:8000" }) {
+export default function RagEvidenceMatrix({ liveRecords, baseUrl = API_BASE }) {
   const [imageErrors, setImageErrors] = useState({});
   const [selectedModalImage, setSelectedModalImage] = useState(null);
 
@@ -207,7 +208,7 @@ export default function RagEvidenceMatrix({ liveRecords, baseUrl = "http://local
         })}
       </div>
 
-      {/* FULLSCREEN LIGHTBOX PORTAL (Renders directly onto document.body so it is NEVER cut when scrolled down!) */}
+      {/* FULLSCREEN LIGHTBOX PORTAL */}
       {selectedModalImage && ReactDOM.createPortal(
         <div 
           className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 w-screen h-screen top-0 left-0"

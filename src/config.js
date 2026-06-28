@@ -1,2 +1,2 @@
-// Empty string = use Vite dev proxy (same origin). Set VITE_API_URL for production.
-export const API_BASE = import.meta.env.VITE_API_URL ?? '';
+// Production Backend Hugging Face Space API
+export const API_BASE = import.meta.env.VITE_API_URL || 'https://imranyasin7866-mimic-cxr-rag-api.hf.space';
