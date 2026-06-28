@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { Database, ShieldCheck, FileText, Sparkles, Image as ImageIcon, CheckCircle2, ExternalLink, X, ZoomIn } from 'lucide-react';
+import { Database, ShieldCheck, FileText, Sparkles, Image as ImageIcon, CheckCircle2, ExternalLink, X, ZoomIn, AlertCircle } from 'lucide-react';
 import { API_BASE } from '../config';
 
 export default function RagEvidenceMatrix({ liveRecords, baseUrl = API_BASE }) {
@@ -139,12 +139,22 @@ export default function RagEvidenceMatrix({ liveRecords, baseUrl = API_BASE }) {
                     onClick={() => !hasErr && setSelectedModalImage(rec)}
                     className="relative w-full h-48 cursor-pointer overflow-hidden rounded-lg border border-gray-800 flex items-center justify-center bg-gray-950"
                   >
-                    <img 
-                      src={rec.imageUrl} 
-                      alt={`Case ${rec.caseId}`}
-                      onError={() => handleImageError(rec.caseId)}
-                      className={`w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 ${hasErr ? 'opacity-30' : 'opacity-100'}`}
-                    />
+                    {!hasErr ? (
+                      <img 
+                        src={rec.imageUrl} 
+                        alt={`Case ${rec.caseId}`}
+                        onError={() => handleImageError(rec.caseId)}
+                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-950 flex flex-col items-center justify-center p-4 text-center space-y-2 border border-gray-800 rounded-lg">
+                        <ImageIcon className="w-10 h-10 text-indigo-400/60" />
+                        <span className="text-[11px] font-mono text-gray-300 font-bold">MIMIC Radiograph #{rec.caseId}</span>
+                        <span className="text-[9px] font-mono text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800/80 flex items-center gap-1">
+                          <AlertCircle className="w-2.5 h-2.5" /> Parquet File Missing on Cloud
+                        </span>
+                      </div>
+                    )}
 
                     {/* Hover Overlay Badge */}
                     {!hasErr && (
@@ -155,12 +165,6 @@ export default function RagEvidenceMatrix({ liveRecords, baseUrl = API_BASE }) {
                       </div>
                     )}
                   </div>
-
-                  {hasErr && (
-                    <div className="absolute inset-0 bg-gray-950/95 rounded-xl flex flex-col items-center justify-center p-3 text-center pointer-events-none text-white">
-                      <p className="text-xs font-mono font-semibold">{rec.imageUrl.replace(baseUrl, '')}</p>
-                    </div>
-                  )}
                 </div>
 
                 {/* Exact Keys Text: impression & findings */}
