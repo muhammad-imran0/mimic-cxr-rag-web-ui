@@ -1,58 +1,59 @@
 import React from 'react';
-import { Cpu, Database, Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
+import { Cpu, Database, Sparkles, CheckCircle2, Loader2, GitMerge } from 'lucide-react';
 
 export default function PipelineTracker({ currentStep, status, isLoading }) {
   const steps = [
-    { id: 1, label: "512-dim BiomedCLIP", sub: "Visual Embedding", icon: Cpu },
-    { id: 2, label: "Qdrant Vector Search", sub: "Historic MIMIC-CXR Lookup", icon: Database },
-    { id: 3, label: "LLM Synthesis", sub: "Clinical Report Streaming", icon: Sparkles },
+    { id: 1, label: "1. BiomedCLIP", sub: "Visual Encoding", icon: Cpu },
+    { id: 2, label: "2. Qdrant Search", sub: "Cosine Lookup", icon: Database },
+    { id: 3, label: "3. Reranker", sub: "Cross-Encoder", icon: GitMerge },
+    { id: 4, label: "4. LLM Report", sub: "Clinical Stream", icon: Sparkles },
   ];
 
   if (!isLoading && currentStep === 0) return null;
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4.5 mb-6 shadow-md">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-2xl p-4 sm:px-6 shadow-sm mb-6 w-full">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         
-        {/* Status indicator */}
-        <div className="flex items-center space-x-3">
-          <div className="p-2.5 bg-gray-950 border border-gray-800 rounded-xl shadow-sm">
-            <Loader2 className={`w-5 h-5 text-indigo-400 ${isLoading ? 'animate-spin' : ''}`} />
+        {/* Status Indicator */}
+        <div className="flex items-center space-x-3 shrink-0">
+          <div className="p-2.5 bg-[#CCFBF1]/60 border border-[#99F6E4] rounded-xl">
+            <Loader2 className={`w-5 h-5 text-[#0F766E] ${isLoading ? 'animate-spin' : ''}`} />
           </div>
           <div>
-            <span className="text-[11px] font-mono uppercase tracking-wider text-indigo-400 font-bold">
-              Live Pipeline Status
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F766E]">
+              Multimodal RAG Telemetry
             </span>
-            <p className="text-xs font-extrabold text-white mt-0.5">{status || "Processing multimodal radiograph..."}</p>
+            <p className="text-xs font-bold text-[#0F172A] mt-0.5">{status || "Diagnosis completed successfully."}</p>
           </div>
         </div>
 
-        {/* Step progress pills */}
-        <div className="flex items-center space-x-2.5">
+        {/* 4-Stage Progress Pills with Visible Labels */}
+        <div className="flex flex-wrap items-center gap-2">
           {steps.map((step) => {
-            const isDone = currentStep > step.id || currentStep === 4;
+            const isDone = currentStep > step.id || currentStep === 5;
             const isCurrent = currentStep === step.id;
             const Icon = step.icon;
 
             return (
               <div 
                 key={step.id}
-                className={`flex items-center space-x-2.5 px-3.5 py-2 rounded-xl text-xs font-medium border transition-all duration-200 ${
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs transition-all duration-200 border ${
                   isDone 
-                    ? 'bg-emerald-950 text-emerald-300 border-emerald-800 font-bold shadow-sm' 
+                    ? 'bg-[#F0FDF4] text-[#16A34A] border-[#BBF7D0] font-bold shadow-2xs' 
                     : isCurrent 
-                      ? 'bg-indigo-950 text-indigo-200 border-indigo-500 font-extrabold shadow-sm ring-1 ring-indigo-500 animate-pulse' 
-                      : 'bg-gray-950 text-gray-400 border-gray-800'
+                      ? 'bg-[#CCFBF1]/60 text-[#0F766E] border-[#0F766E] font-bold shadow-2xs ring-2 ring-[#0F766E]/20 animate-pulse' 
+                      : 'bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0] font-medium'
                 }`}
               >
                 {isDone ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0" />
                 ) : (
-                  <Icon className={`w-4 h-4 shrink-0 ${isCurrent ? 'text-indigo-400' : 'text-gray-500'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isCurrent ? 'text-[#0F766E]' : 'text-[#94A3B8]'}`} />
                 )}
-                <div>
-                  <p className="font-bold text-[11px] leading-tight">{step.label}</p>
-                  <p className="text-[9px] text-gray-400 font-mono mt-0.5">{step.sub}</p>
+                <div className="flex flex-col">
+                  <span className="font-bold text-[11px] leading-tight whitespace-nowrap">{step.label}</span>
+                  <span className="text-[9px] text-[#64748B] whitespace-nowrap">{step.sub}</span>
                 </div>
               </div>
             );
