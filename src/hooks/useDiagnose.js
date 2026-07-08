@@ -10,7 +10,8 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
   const [status, setStatus] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
   const [retrievedRecords, setRetrievedRecords] = useState([]);
-  const [report, setReport] = useState("");
+  const [reports, setReports] = useState({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
+  const [prompts, setPrompts] = useState({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
   const [caption, setCaption] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -47,7 +48,8 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
     setStatus("");
     setCurrentStep(0);
     setRetrievedRecords([]);
-    setReport("");
+    setReports({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
+    setPrompts({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
     setCaption("");
     setIsLoading(false);
     setError(null);
@@ -72,7 +74,8 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
 
   const diagnoseImage = async (file, pipeline = "none") => {
     setIsLoading(true);
-    setReport("");
+    setReports({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
+    setPrompts({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
     setRetrievedRecords([]);
     setError(null);
 
@@ -172,7 +175,8 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
     setStep3Loading(true);
     setStep3Error(null);
     setError(null);
-    setReport("");
+    setReports(prev => ({ ...prev, [reportModel]: "" }));
+    setPrompts(prev => ({ ...prev, [reportModel]: "" }));
     setCaption("");
     setStatus("Synthesizing clinical report...");
     setCurrentStep(3);
@@ -274,8 +278,10 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
               setStatus(data.content);
             } else if (data.type === "caption") {
               setCaption(data.content);
+            } else if (data.type === "prompt") {
+              setPrompts((prev) => ({ ...prev, [reportModel]: data.content }));
             } else if (data.type === "token") {
-              setReport((prev) => prev + data.content);
+              setReports((prev) => ({ ...prev, [reportModel]: (prev[reportModel] || "") + data.content }));
             } else if (data.type === "done") {
               setStatus("Diagnosis completed successfully.");
               setCurrentStep(4);
@@ -308,7 +314,8 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
     status,
     currentStep,
     retrievedRecords,
-    report,
+    reports,
+    prompts,
     caption,
     isLoading,
     error,

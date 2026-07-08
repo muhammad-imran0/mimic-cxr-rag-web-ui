@@ -25,10 +25,10 @@ export default function Header({
   }, [onCheckHealth]);
 
   const modelOptions = [
-    { id: 'llama3.2', name: 'Ollama (Llama-3.2 3B)' },
-    { id: 'biogpt', name: 'BioGPT (7B Medical)' },
-    { id: 'clinical-camel', name: 'Clinical Camel (13B)' },
-    { id: 'gpt4o', name: 'OpenAI GPT-4o' }
+    { id: 'llama3.2', name: 'Llama-3.2 (3B)' },
+    { id: 'meditron:7b', name: 'Meditron (7B Clinical)' },
+    { id: 'mistral:latest', name: 'Mistral (7B General)' },
+    { id: 'qwen2.5vl:7b', name: 'Qwen2.5-VL (7B Vision)' }
   ];
 
   const steps = [

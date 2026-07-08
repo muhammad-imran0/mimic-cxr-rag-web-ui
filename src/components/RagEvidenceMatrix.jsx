@@ -225,6 +225,7 @@ export default function RagEvidenceMatrix({
             { id: "none", label: "No Filter (Img)" },
             { id: "keyword", label: "Keyword Filter" },
             { id: "chexbert", label: "CheXbert Filter" },
+            { id: "hybrid", label: "Hybrid Filter" },
             { id: "llm", label: "LLM Filter" },
             { id: "text_rag", label: "Text RAG (MPNet)" }
           ].map((tab) => {

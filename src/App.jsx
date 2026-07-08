@@ -13,7 +13,7 @@ import ReactDOM from 'react-dom';
 export default function App() {
   const [isLiveServer, setIsLiveServer] = useState(true);
   const [reportModel, setReportModel] = useState('llama3.2');
-  const REPORT_MODELS = ['llama3.2', 'qwen2.5vl:7b'];
+  const REPORT_MODELS = ['llama3.2', 'meditron:7b', 'mistral:latest', 'qwen2.5vl:7b'];
   const [selectedPipeline, setSelectedPipeline] = useState('none');
   
   
@@ -38,12 +38,14 @@ export default function App() {
     status, 
     currentStep,
     retrievedRecords, 
-    report,
+    reports,
+    prompts,
     caption,
     isLoading, 
     isServerHealthy, 
     checkHealth,
     uploadedImagePreview,
+    uploadedImageBase64,
     uploadedFileName,
     uploadedCaseDetails,
     comparisons,
@@ -57,7 +59,7 @@ export default function App() {
     step3Error
   } = useDiagnose(API_BASE);
 
-  const hasActiveDiagnosis = Boolean(uploadedImagePreview || isLoading || report || retrievedRecords.length > 0);
+  const hasActiveDiagnosis = Boolean(uploadedImagePreview || isLoading || Object.values(reports).some(Boolean) || retrievedRecords.length > 0);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -86,6 +88,17 @@ export default function App() {
     }
   };
 
+  const handleTriggerGenerateAll = async () => {
+    setHasReportGenerated(true);
+    // Sequentially run all report models
+    for (let model of REPORT_MODELS) {
+      const bestPipeline = await generateReport(model);
+      if (bestPipeline) {
+        setSelectedPipeline(bestPipeline);
+      }
+    }
+  };
+
   const activeCaseData = {
     id: uploadedFileName || 'sample_patient_cxr.png',
     gradCamHotspots: [
@@ -103,7 +116,7 @@ export default function App() {
   };
 
   const viewOptions = [
-    { id: 'radiograph', label: 'Radiograph & BLIP-2 Caption', icon: ImageIcon, desc: 'Original DICOM input & visual scene description' },
+    { id: 'radiograph', label: 'Radiograph & Qwen2.5-VL Caption', icon: ImageIcon, desc: 'Original DICOM input & visual scene description' },
     { id: 'xai', label: 'Grad-CAM XAI Heatmap', icon: Eye, desc: 'Deep CNN visual feature attention weights' },
     { id: 'pathology', label: 'Pathology Probability Meters', icon: TrendingUp, desc: 'Quantitative multi-label pathology classification' }
   ];
@@ -235,9 +248,9 @@ export default function App() {
 
                     {/* VIEW MODE CONTENT DISPLAY */}
                     {viewMode === 'xai' ? (
-                      <VisualizationMatrix selectedCase={activeCaseData} />
+                      <VisualizationMatrix selectedCase={activeCaseData} apiBase={API_BASE} uploadedImagePreview={uploadedImagePreview} />
                     ) : viewMode === 'pathology' ? (
-                      <PathologyMeters selectedCase={activeCaseData} />
+                      <PathologyMeters apiBase={API_BASE} uploadedImagePreview={uploadedImagePreview} />
                     ) : (
                       /* Standard Radiograph & BLIP-2 Caption Display */
                       <div className="space-y-4">
@@ -351,7 +364,8 @@ export default function App() {
                                     { id: "keyword", name: "Keyword Filter", queryLabel: uploadedCaseDetails?.label_keyword, labelKey: "label_keyword" },
                                     { id: "chexbert", name: "CheXbert Filter", queryLabel: uploadedCaseDetails?.label_chexbert_primary, labelKey: "label_chexbert_primary" },
                                     { id: "llm", name: "LLM Filter", queryLabel: uploadedCaseDetails?.label_llm_primary, labelKey: "label_llm_primary" },
-                                    { id: "text_rag", name: "Text RAG (MPNet)", queryLabel: uploadedCaseDetails?.label_chexbert_primary, labelKey: "label_chexbert_primary" }
+                                    { id: "text_rag", name: "Text RAG (MPNet)", queryLabel: uploadedCaseDetails?.label_chexbert_primary, labelKey: "label_chexbert_primary" },
+                                    { id: "hybrid", name: "Hybrid Filter", queryLabel: uploadedCaseDetails?.label_chexbert_primary, labelKey: "label_chexbert_primary" }
                                   ].map((pipe) => {
                                     const pipeMatches = comparisons[pipe.id] || [];
                                     const queryLabelLower = (pipe.queryLabel || "Other").toLowerCase();
@@ -440,13 +454,15 @@ export default function App() {
                 </button>
 
                 <StreamingReport 
-                  liveReport={report}
+                  reports={reports}
+                  prompts={prompts}
                   liveStatus={status}
                   isLoadingLive={isLoading}
                   retrievedRecords={(comparisons && selectedPipeline) ? (comparisons[selectedPipeline] || retrievedRecords) : retrievedRecords}
                   selectedModel={reportModel}
                   hasReportGenerated={hasReportGenerated}
                   onTriggerGenerate={handleTriggerGenerateReport}
+                  onTriggerGenerateAll={handleTriggerGenerateAll}
                   onReportModelChange={setReportModel}
                   reportModels={REPORT_MODELS}
                   step1Loading={step1Loading}

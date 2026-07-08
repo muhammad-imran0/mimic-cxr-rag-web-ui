@@ -122,3 +122,22 @@
   font-size: 0.85em;
   font-family: monospace;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-radiology-report, #printable-radiology-report * {
+    visibility: visible;
+  }
+  #printable-radiology-report {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}

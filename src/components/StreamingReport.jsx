@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FileText, CheckCircle2, Copy, Sparkles, Loader2, ShieldAlert, Cpu, RefreshCw, Play, ZoomIn, X, ImageIcon, Database, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { FileText, CheckCircle2, Copy, Sparkles, Loader2, ShieldAlert, Cpu, RefreshCw, Play, ZoomIn, X, ImageIcon, Database, ChevronDown, ChevronUp, User, Printer, Terminal } from 'lucide-react';
 import ReactDOM from 'react-dom';
 
 /* ── Static patient info ── */
@@ -294,12 +294,13 @@ function parseReport(text) {
 
 /* ── Main Component ── */
 export default function StreamingReport({
-  liveReport, isLoadingLive, retrievedRecords = [], selectedModel = 'meditron:7b',
-  hasReportGenerated, onTriggerGenerate,
-  onReportModelChange, reportModels = ['meditron:7b', 'mistral:7b'],
+  reports = {}, prompts = {}, isLoadingLive, retrievedRecords = [], selectedModel = 'llama3.2',
+  hasReportGenerated, onTriggerGenerate, onTriggerGenerateAll,
+  onReportModelChange, reportModels = ['llama3.2', 'meditron:7b', 'mistral:latest', 'qwen2.5vl:7b'],
   step1Loading, step2Loading, step3Loading, step3Error,
   uploadedImagePreview, apiBase,
 }) {
+  const liveReport = reports[selectedModel] || "";
   const [copied, setCopied] = useState(false);
   const [lbSrc, setLbSrc] = useState(null);
   const [viewMode, setViewMode] = useState('structured'); // 'structured' | 'raw'
@@ -355,9 +356,10 @@ export default function StreamingReport({
 
 
   // ── UX States ──
+  const anyReportGenerated = Object.values(reports).some(Boolean);
   const retrievalInProgress = step1Loading || step2Loading;
-  const readyToGenerate = !retrievalInProgress && retrievedRecords.length > 0 && !hasReportGenerated && !liveReport && !step3Loading && !step3Error;
-  const reportActive = step3Loading || step3Error || isLoadingLive || !!liveReport || hasReportGenerated;
+  const readyToGenerate = !retrievalInProgress && retrievedRecords.length > 0 && !liveReport && !step3Loading && !isLoadingLive;
+  const reportActive = step3Loading || step3Error || isLoadingLive || !!liveReport || anyReportGenerated;
 
   if (retrievalInProgress || (!retrievedRecords.length && !reportActive)) {
     return <div className="h-full" />;
@@ -395,6 +397,10 @@ export default function StreamingReport({
                 Raw Text
               </button>
             </div>
+            <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#374151] border border-[#E5E7EB] rounded-lg bg-white hover:bg-[#F3F4F6] cursor-pointer transition-colors mr-1">
+              <Printer className="w-3.5 h-3.5" />
+              Print
+            </button>
             <button onClick={copy} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#374151] border border-[#E5E7EB] rounded-lg bg-white hover:bg-[#F3F4F6] cursor-pointer transition-colors">
               {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copied' : 'Copy'}
@@ -405,6 +411,47 @@ export default function StreamingReport({
 
       {/* Patient banner — always visible when report is active */}
       {reportActive && <PatientBanner />}
+
+      {/* Model Tabs Bar */}
+      {reportActive && (
+        <div className="flex border-b border-[#E5E7EB] bg-[#F9FAFB] px-5 py-2.5 overflow-x-auto gap-2 items-center shrink-0">
+          {reportModels.map(m => {
+            const hasReport = !!reports[m];
+            const isActive = selectedModel === m;
+            const modelLabel = m === 'llava-med-1.5' ? 'LLaVA-Med-1.5' :
+                               m === 'llama3.2' ? 'Llama-3.2' :
+                               m === 'clinical-camel' ? 'Clinical Camel' :
+                               m === 'gpt4o' ? 'GPT-4o' : m;
+            return (
+              <button
+                key={m}
+                onClick={() => onReportModelChange && onReportModelChange(m)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                  isActive 
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' 
+                    : 'bg-white text-[#475569] hover:bg-slate-55 border-slate-200 hover:text-slate-900'
+                }`}
+              >
+                <Cpu className="w-3.5 h-3.5" />
+                <span>{modelLabel}</span>
+                {hasReport && <span className="w-1.5 h-1.5 rounded-full bg-green-500 ml-0.5"></span>}
+              </button>
+            );
+          })}
+          
+          {/* Generate All Button */}
+          {onTriggerGenerateAll && (
+            <button
+              onClick={onTriggerGenerateAll}
+              className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#0F172A] text-white hover:bg-slate-800 cursor-pointer shadow-xs border border-[#0f172a]"
+              title="Sequentially generate reports for all models"
+            >
+              <Play className="w-3 h-3 fill-white" />
+              <span>Generate All</span>
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
 
@@ -489,52 +536,99 @@ export default function StreamingReport({
 
             {/* Report body */}
             {liveReport && (
-              <div>
+              <div className="p-6 bg-slate-50 border-t border-[#E5E7EB] overflow-y-auto flex-1">
                 {viewMode === 'raw' ? (
-                  <div className="px-5 py-4 bg-[#F9FAFB] border-t border-[#E5E7EB] font-mono text-[11px] text-[#374151] leading-relaxed whitespace-pre-wrap select-text">
+                  <div className="px-5 py-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl font-mono text-[11px] text-[#374151] leading-relaxed whitespace-pre-wrap select-text">
                     {liveReport}
                   </div>
                 ) : (
-                  <>
-                    {Object.keys(sections).length === 0 ? (
-                      <div className="px-5 py-4"><ReportDoc content={liveReport} /></div>
-                    ) : (
-                      (() => {
-                        const SEC_CONFIG = {
-                          EXAMINATION:   { icon: '📋', label: 'Examination',   accent: '#6B7280' },
-                          FINDINGS:      { icon: '🔍', label: 'Findings',      accent: '#374151' },
-                          IMPRESSION:    { icon: '🩺', label: 'Impression',    accent: '#059669' },
-                          RECOMMENDATION:{ icon: '💊', label: 'Recommendation',accent: '#2563EB' },
-                          LIMITATIONS:   { icon: '⚠️', label: 'Limitations',   accent: '#D97706' },
-                        };
-                        return Object.entries(SEC_CONFIG).map(([key, cfg]) => {
-                          const content = sections[key];
-                          if (!content) return null;
-                          const isOpen = openSections[key];
-                          return (
-                            <div key={key} className="border-b border-[#E5E7EB]">
-                              <button
-                                onClick={() => toggleSection(key)}
-                                className="w-full flex items-center justify-between px-5 py-2.5 text-left bg-[#F9FAFB] hover:bg-[#F3F4F6] cursor-pointer transition-colors"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span>{cfg.icon}</span>
-                                  <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: cfg.accent }}>{cfg.label}</span>
-                                </div>
-                                {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-[#9CA3AF]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#9CA3AF]" />}
-                              </button>
-                              {isOpen && (
-                                <div className="px-5 py-4">
+                  <div id="printable-radiology-report" className="bg-white border border-[#E2E8F0] shadow-md rounded-xl p-8 max-w-2xl mx-auto text-[#1E293B] font-sans relative print:shadow-none print:border-none print:p-0">
+                    
+                    {/* Hospital Letterhead */}
+                    <div className="text-center border-b-2 border-indigo-600 pb-4 mb-6">
+                      <h3 className="text-sm font-extrabold text-[#0F172A] tracking-widest uppercase">London East Clinical Hospital</h3>
+                      <p className="text-[10px] text-[#64748B] uppercase tracking-wider font-mono">Department of Radiology & Imaging Services</p>
+                    </div>
+
+                    {/* Patient Metadata Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-[#E2E8F0] pb-4 mb-6 text-xs leading-relaxed">
+                      <div>
+                        <p className="flex"><span className="text-[#64748B] font-mono uppercase tracking-wider text-[9px] w-24 shrink-0">Patient:</span> <strong className="text-[#0F172A]">{PATIENT.name}</strong></p>
+                        <p className="flex"><span className="text-[#64748B] font-mono uppercase tracking-wider text-[9px] w-24 shrink-0">DOB / Age:</span> <span className="font-semibold">{PATIENT.dob} (Age {PATIENT.age})</span></p>
+                        <p className="flex"><span className="text-[#64748B] font-mono uppercase tracking-wider text-[9px] w-24 shrink-0">Gender:</span> <span className="font-semibold">{PATIENT.gender}</span></p>
+                      </div>
+                      <div>
+                        <p className="flex"><span className="text-[#64748B] font-mono uppercase tracking-wider text-[9px] w-28 shrink-0">Accession No:</span> <strong className="font-mono text-indigo-600">{PATIENT.accession}</strong></p>
+                        <p className="flex"><span className="text-[#64748B] font-mono uppercase tracking-wider text-[9px] w-28 shrink-0">Referring Dr:</span> <span className="font-semibold">{PATIENT.physician}</span></p>
+                        <p className="flex"><span className="text-[#64748B] font-mono uppercase tracking-wider text-[9px] w-28 shrink-0">Exam Date:</span> <span className="font-semibold">{todayStr()}</span></p>
+                      </div>
+                    </div>
+
+                    {/* Sequential Structured Sections */}
+                    <div className="space-y-6">
+                      {Object.keys(sections).length === 0 ? (
+                        <div className="text-xs text-slate-700 leading-relaxed font-normal whitespace-pre-wrap select-text">
+                          <ReportDoc content={liveReport} />
+                        </div>
+                      ) : (
+                        (() => {
+                          const SEC_CONFIG = {
+                            EXAMINATION:   { label: 'Examination & Indication' },
+                            FINDINGS:      { label: 'Findings' },
+                            IMPRESSION:    { label: 'Clinical Impression' },
+                            RECOMMENDATION:{ label: 'Clinical Recommendations' },
+                            LIMITATIONS:   { label: 'Limitations' },
+                          };
+                          return Object.entries(SEC_CONFIG).map(([key, cfg]) => {
+                            const content = sections[key];
+                            if (!content) return null;
+                            return (
+                              <div key={key}>
+                                <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-600 mb-2 border-b border-indigo-50 pb-1">{cfg.label}</h4>
+                                <div className="text-xs text-slate-700 leading-relaxed font-normal select-text pl-1">
                                   <ReportDoc content={content} />
                                 </div>
-                              )}
-                            </div>
-                          );
-                        });
-                      })()
-                    )}
-                  </>
+                              </div>
+                            );
+                          });
+                        })()
+                      )}
+                    </div>
+
+                    {/* Signature block */}
+                    <div className="border-t border-[#E2E8F0] mt-8 pt-6 flex justify-between items-end">
+                      <div className="text-xs text-slate-500">
+                        <p className="font-mono text-[9px] uppercase tracking-wider">Report Authenticated</p>
+                        <p className="font-bold text-slate-800">{PATIENT.physician}</p>
+                        <p className="text-[10px]">Attending Radiologist, Board Certified</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-block px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-lg text-[9px] font-bold uppercase tracking-wider">
+                          ✓ Digitally Signed
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
                 )}
+              </div>
+            )}
+
+            {/* Raw Prompt Inspector */}
+            {liveReport && prompts[selectedModel] && (
+              <div className="max-w-[720px] mx-auto mt-6 mb-8 px-8 print:hidden w-full">
+                <details className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 transition-all shadow-2xs">
+                  <summary className="px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer select-none flex items-center justify-between transition-colors">
+                    <span className="flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-indigo-500" />
+                      <span>🔍 VIEW RAW RAG PROMPT CONTEXT (LLM INPUT)</span>
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">Expand / Collapse</span>
+                  </summary>
+                  <div className="p-5 bg-slate-900 text-[#38BDF8] font-mono text-[11px] leading-relaxed whitespace-pre-wrap select-text max-h-[500px] overflow-y-auto border-t border-slate-200">
+                    {prompts[selectedModel]}
+                  </div>
+                </details>
               </div>
             )}
 

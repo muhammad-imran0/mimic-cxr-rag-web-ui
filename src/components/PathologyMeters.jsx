@@ -1,84 +1,144 @@
-import React from 'react';
-import { Activity, ShieldAlert, AlertTriangle, CheckCircle, Info, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldAlert, AlertTriangle, CheckCircle, TrendingUp, Loader2 } from 'lucide-react';
 
-export default function PathologyMeters({ selectedCase }) {
+export default function PathologyMeters({ apiBase, uploadedImagePreview }) {
+  const [pathologies, setPathologies] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchPathologies = async () => {
+      if (!uploadedImagePreview) return;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch(uploadedImagePreview);
+        const blob = await res.blob();
+
+        const formData = new FormData();
+        formData.append("file", blob, "image.jpg");
+
+        const apiRes = await fetch(`${apiBase}/api/v1/xai/classify`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!apiRes.ok) throw new Error("Failed to classify image.");
+
+        const data = await apiRes.json();
+
+        if (isMounted) {
+          setPathologies(data.pathologies || []);
+        }
+      } catch (err) {
+        if (isMounted) setError(err.message);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchPathologies();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [uploadedImagePreview, apiBase]);
+
   const getRiskBadge = (risk) => {
     switch (risk) {
       case 'High':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-950 text-red-400 border border-red-800/80 flex items-center gap-1"><ShieldAlert className="w-3 h-3"/> High Risk</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-50 text-red-600 border border-red-200 flex items-center gap-1"><ShieldAlert className="w-3 h-3"/> High Risk</span>;
       case 'Moderate':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-950 text-amber-400 border border-amber-800/80 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Moderate</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-50 text-amber-600 border border-amber-200 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Moderate</span>;
       default:
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1"><CheckCircle className="w-3 h-3"/> Low Risk</span>;
+        return <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1"><CheckCircle className="w-3 h-3"/> Low Risk</span>;
     }
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-6 mb-6 border border-slate-800/80 shadow-2xl">
+    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
       
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
         <div>
-          <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-cyan-400" />
-            Multi-Label Pathology Probability Meters
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-blue-600" />
+            Zero-Shot Disease Classification
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Real-time dense multi-label convolutional classifier output calibrated across MIMIC-CXR benchmark distribution.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Real-time multi-label classification using BioMedCLIP zero-shot inference.
           </p>
-        </div>
-        <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400">
-          <Info className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Multi-label Sigmoid Threshold: <strong>0.50</strong></span>
         </div>
       </div>
 
-      {/* Probability Bars Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {selectedCase.pathologyScores.map((pathology, idx) => {
-          const percentage = (pathology.score * 100).toFixed(1);
-          return (
-            <div 
-              key={idx}
-              className="bg-slate-900/70 rounded-xl p-4 border border-slate-800/80 hover:border-slate-700 transition-all duration-200 flex flex-col justify-between group relative overflow-hidden"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold text-slate-200 group-hover:text-cyan-300 transition-colors">
-                    {pathology.name}
-                  </span>
-                  {getRiskBadge(pathology.risk)}
-                </div>
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+          <p className="text-xs text-slate-500">Evaluating 14 disease categories...</p>
+        </div>
+      )}
 
-                {/* Progress Bar Container */}
-                <div className="relative w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800 mb-2">
-                  <div 
-                    className="h-full rounded-full transition-all duration-700 ease-out relative"
-                    style={{ 
-                      width: `${percentage}%`,
-                      backgroundColor: pathology.color,
-                      boxShadow: `0 0 12px ${pathology.color}80`
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-xl text-xs flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <p>{error}</p>
+        </div>
+      )}
+
+      {!isLoading && !error && !uploadedImagePreview && (
+        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+          <p className="text-xs">Please upload an image to see zero-shot classification results.</p>
+        </div>
+      )}
+
+      {!isLoading && !error && pathologies.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {pathologies.map((pathology, idx) => {
+            const percentage = (pathology.score * 100).toFixed(1);
+            return (
+              <div 
+                key={idx}
+                className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 hover:border-slate-200 transition-all duration-200 flex flex-col justify-between group relative overflow-hidden"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                      {pathology.name}
+                    </span>
+                    {getRiskBadge(pathology.risk)}
+                  </div>
+
+                  {/* Progress Bar Container */}
+                  <div className="relative w-full h-2 bg-slate-200/70 rounded-full overflow-hidden mb-2">
+                    <div 
+                      className="h-full rounded-full transition-all duration-700 ease-out"
+                      style={{ 
+                        width: `${percentage}%`,
+                        backgroundColor: pathology.color
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] mb-2">
+                    <span className="text-slate-400 font-mono">Zero-Shot Prob:</span>
+                    <span className="font-mono font-bold text-slate-800">
+                      {percentage}%
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="text-slate-400 font-mono text-[11px]">Classifier Score:</span>
-                  <span className="font-mono font-bold text-slate-100 text-sm" style={{ color: pathology.color }}>
-                    {percentage}%
-                  </span>
-                </div>
+                <p className="text-[10px] text-slate-500 pt-2 border-t border-slate-100 font-sans leading-relaxed">
+                  {pathology.details}
+                </p>
+
               </div>
-
-              <p className="text-[11px] text-slate-400 line-clamp-2 pt-2 border-t border-slate-800/60 font-sans leading-relaxed">
-                {pathology.details}
-              </p>
-
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
     </div>
   );
