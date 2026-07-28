@@ -1,116 +1,215 @@
-import React, { useState } from 'react';
-import { Eye, Layers, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Sparkles, Loader2, Info } from 'lucide-react';
 
-export default function VisualizationMatrix({ selectedCase, apiBase, uploadedImagePreview }) {
-  const [promptText, setPromptText] = useState("");
+/* ═══════════════════════════════════════════════════════════════
+   XAI LIGHTBOX COMPARISON — "Visual Grounding"
+   Side-by-side PACS view with a vertical label divider
+   ═══════════════════════════════════════════════════════════════ */
+
+export default function VisualizationMatrix({ selectedCase, apiBase, uploadedImagePreview, autoLabel = '', caption = '' }) {
+  const [promptText, setPromptText]   = useState('');
   const [heatmapImage, setHeatmapImage] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [explanation, setExplanation]   = useState(null);
+  const [method, setMethod]             = useState(null);
+  const [queryTerm, setQueryTerm]       = useState(null);
+  const [confidenceNote, setConfidenceNote] = useState(null);
+  const [isLoading, setIsLoading]       = useState(false);
+  const [error, setError]               = useState(null);
+  const [autoTriggered, setAutoTriggered] = useState(false);
 
-  const generateHeatmap = async () => {
-    if (!promptText.trim() || !uploadedImagePreview) return;
+  const base = (apiBase || 'http://localhost:8000').replace(/\/$/, '');
+  const prevAutoLabel = useRef('');
+
+  // Auto-trigger on initial primary CheXbert class loaded
+  useEffect(() => {
+    if (autoLabel && autoLabel !== prevAutoLabel.current && uploadedImagePreview && !heatmapImage) {
+      prevAutoLabel.current = autoLabel;
+      setPromptText(autoLabel);
+      triggerExplain(autoLabel, true);
+    }
+  }, [autoLabel, uploadedImagePreview]);
+
+  const triggerExplain = async (query, isAuto = false) => {
+    const q = (query || promptText).trim();
+    if (!q || !uploadedImagePreview) return;
+
     setIsLoading(true);
     setError(null);
+    if (isAuto) setAutoTriggered(true);
+
     try {
-      const res = await fetch(uploadedImagePreview);
+      const res  = await fetch(uploadedImagePreview);
       const blob = await res.blob();
-      
+
       const formData = new FormData();
       formData.append('file', blob, 'image.jpg');
-      formData.append('text', promptText);
-      
-      const response = await fetch(`${apiBase}/api/v1/xai/heatmap`, {
+      formData.append('text', q);
+      formData.append('label_chexbert', caption || q);
+
+      const response = await fetch(`${base}/api/v1/xai/explain`, {
         method: 'POST',
         body: formData,
       });
-      
-      if (!response.ok) throw new Error("Failed to generate heatmap");
+
+      if (!response.ok) throw new Error(`Status ${response.status}`);
       const data = await response.json();
+
       setHeatmapImage(data.heatmap_url);
+      setExplanation(data.explanation || null);
+      setMethod(data.method || null);
+      setQueryTerm(data.query_term || q);
+      setConfidenceNote(data.confidence_note || null);
     } catch (err) {
-      setError(err.message);
+      try {
+        const res2  = await fetch(uploadedImagePreview);
+        const blob2 = await res2.blob();
+        const fd2   = new FormData();
+        fd2.append('file', blob2, 'image.jpg');
+        fd2.append('text', q);
+        const r2 = await fetch(`${base}/api/v1/xai/heatmap`, { method: 'POST', body: fd2 });
+        if (!r2.ok) throw new Error();
+        const d2 = await r2.json();
+        setHeatmapImage(d2.heatmap_url);
+        setQueryTerm(q);
+        setExplanation(null);
+        setConfidenceNote('Coarse visual localization. Explanatory LLM endpoint offline.');
+      } catch {
+        setError('Failed to compute patches similarity.');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleManual = () => {
+    setAutoTriggered(false);
+    triggerExplain(promptText, false);
+  };
+
   return (
-    <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xl shadow-slate-200/50 space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px', gap: 16 }}>
       
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-        <div>
-          <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-teal-600" />
-            Zero-Shot Grounding Explainable AI (XAI)
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Visualize exactly where the BioMedCLIP model detects specific pathologies.
-          </p>
+      {/* ── Top Bar ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="panel-label" style={{ fontSize: 13 }}>Visual Grounding (BiomedCLIP)</span>
+          {autoTriggered && queryTerm && (
+            <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: 'var(--cyan)' }}>
+              AUTO · {queryTerm}
+            </span>
+          )}
         </div>
+        {heatmapImage && (
+          <button
+            onClick={() => { setHeatmapImage(null); setExplanation(null); setAutoTriggered(false); }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-disabled)', fontSize: 12, cursor: 'pointer' }}
+          >
+            Clear XAI
+          </button>
+        )}
       </div>
 
-      {/* Input Controls */}
-      <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+      {/* ── Query Box (Underline Only) ── */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <input
+          id="xai-query-input"
           type="text"
           value={promptText}
-          onChange={(e) => setPromptText(e.target.value)}
-          placeholder="e.g., Pleural Effusion, Atelectasis, Cardiomegaly..."
-          className="flex-1 bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-          onKeyDown={(e) => e.key === 'Enter' && generateHeatmap()}
+          onChange={e => setPromptText(e.target.value)}
+          placeholder="Enter query term (e.g. pleural effusion, cardiomegaly)..."
+          className="underline-input"
+          style={{ fontSize: 14 }}
+          onKeyDown={e => e.key === 'Enter' && handleManual()}
         />
         <button
-          onClick={generateHeatmap}
-          disabled={isLoading || !promptText.trim() || !uploadedImagePreview}
-          className="px-6 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+          id="xai-generate-btn"
+          onClick={handleManual}
+          disabled={isLoading || !promptText.trim()}
+          className="btn-primary"
+          style={{ padding: '6px 14px', fontSize: 13 }}
         >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          {isLoading ? "Analyzing..." : "Generate Heatmap"}
+          {isLoading ? 'Computing...' : 'Visualize'}
         </button>
       </div>
 
+      {/* Error */}
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4" />
+        <div style={{ fontSize: 13, color: 'var(--red)', background: 'rgba(239,68,68,0.06)', border: '1px solid var(--border)', padding: '8px 12px' }}>
           {error}
         </div>
       )}
 
-      {/* Comparison Area */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Original Image */}
-        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-              <Eye className="w-3.5 h-3.5 text-teal-600" /> Original Input Radiograph
+      {/* ── Lightbox Side-by-Side Comparison ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justify: 'center', gap: 16 }}>
+        
+        <div style={{ display: 'flex', background: '#070A0E', border: '1px solid var(--border)', flex: 1, maxHeight: 340, minHeight: 220 }}>
+          {/* Left panel: Original */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, position: 'relative' }}>
+            <img src={uploadedImagePreview} alt="Original input" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            <span style={{ position: 'absolute', bottom: 8, left: 10, fontSize: 12, color: 'var(--text-disabled)', fontFamily: "'JetBrains Mono', monospace" }}>ORIGINAL</span>
+          </div>
+
+          {/* Rotated text divider */}
+          <div style={{
+            width: 24,
+            borderLeft: '1px solid var(--border)',
+            borderRight: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--ws-bg)',
+          }}>
+            <span style={{
+              writingMode: 'vertical-rl',
+              transform: 'rotate(180deg)',
+              fontSize: 12,
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 600,
+              color: 'var(--text-disabled)',
+              letterSpacing: '0.12em',
+              whiteSpace: 'nowrap',
+            }}>
+              VISUAL GROUNDING {queryTerm ? `· ${queryTerm.toUpperCase()}` : ''}
             </span>
           </div>
-          <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center border border-slate-200 shadow-inner">
-            {uploadedImagePreview ? (
-              <img src={uploadedImagePreview} alt="Original" className="w-full h-full object-contain" />
+
+          {/* Right panel: Heatmap */}
+          <div
+            className={`lightbox-panel ${heatmapImage ? 'xai-active' : ''}`}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, position: 'relative', border: 'none' }}
+          >
+            {isLoading ? (
+              <Loader2 style={{ width: 20, height: 20, color: 'var(--cyan)', animation: 'spin 1s linear infinite' }} />
+            ) : heatmapImage ? (
+              <img src={heatmapImage} alt="BiomedCLIP Visual similarity heatmap" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             ) : (
-              <span className="text-slate-500 text-xs">No image uploaded</span>
+              <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontFamily: "'JetBrains Mono', monospace" }}>HEATMAP STANDBY</span>
             )}
+            <span style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 12, color: 'var(--cyan)', fontFamily: "'JetBrains Mono', monospace" }}>HEATMAP OVERLAY</span>
           </div>
         </div>
 
-        {/* Heatmap Overlay */}
-        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-teal-700 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-teal-600" /> Zero-Shot Grounding Heatmap
-            </span>
-          </div>
-          <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center border border-slate-200 shadow-inner">
-            {heatmapImage ? (
-              <img src={heatmapImage} alt="Heatmap" className="w-full h-full object-contain" />
-            ) : (
-              <span className="text-slate-500 text-xs">Enter a clinical finding to generate</span>
-            )}
-          </div>
+        {/* ── Explanation Panel below ── */}
+        <div style={{ flexShrink: 0, padding: '12px 14px', background: 'var(--panel-bg)', border: '1px solid var(--border)' }}>
+          <div className="panel-label" style={{ fontSize: 13, marginBottom: 6 }}>Clinical Interpretation</div>
+          {explanation ? (
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{explanation}</p>
+          ) : (
+            <p style={{ fontSize: 14, color: 'var(--text-disabled)', fontStyle: 'italic' }}>
+              {isLoading ? 'Running local LLM interpretation pipeline...' : 'Provide a term above to compute patch similarity.'}
+            </p>
+          )}
+
+          {confidenceNote && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+              <Info style={{ width: 14, height: 14, color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+              <span style={{ fontSize: 12, color: 'var(--text-disabled)', lineHeight: 1.5 }}>{confidenceNote}</span>
+            </div>
+          )}
         </div>
+
       </div>
+
     </div>
   );
 }

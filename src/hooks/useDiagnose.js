@@ -12,6 +12,7 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
   const [retrievedRecords, setRetrievedRecords] = useState([]);
   const [reports, setReports] = useState({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
   const [prompts, setPrompts] = useState({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
+  const [filledPrompts, setFilledPrompts] = useState({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
   const [caption, setCaption] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -50,6 +51,7 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
     setRetrievedRecords([]);
     setReports({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
     setPrompts({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
+    setFilledPrompts({ 'llama3.2': '', 'meditron:7b': '', 'mistral:latest': '', 'qwen2.5vl:7b': '' });
     setCaption("");
     setIsLoading(false);
     setError(null);
@@ -165,7 +167,10 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
     }
   };
 
-  const generateReport = async (reportModel = "llama3.2") => {
+  const generateReport = async (
+    reportModel = "llama3.2",
+    { customSystemPrompt = null, customUserTemplate = null } = {}
+  ) => {
     if (retrievedRecords.length === 0) {
       console.warn("No retrieved records available for report generation");
       return;
@@ -177,6 +182,7 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
     setError(null);
     setReports(prev => ({ ...prev, [reportModel]: "" }));
     setPrompts(prev => ({ ...prev, [reportModel]: "" }));
+    setFilledPrompts(prev => ({ ...prev, [reportModel]: "" }));
     setCaption("");
     setStatus("Synthesizing clinical report...");
     setCurrentStep(3);
@@ -243,13 +249,13 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
       const targetEndpoint = `${baseUrl.replace(/\/$/, '')}/api/v1/report/synthesize`;
       const response = await fetch(targetEndpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           matches: matchesPayload,
           image_base64: uploadedImageBase64 || null,
           report_model: reportModel,
+          custom_system_prompt: customSystemPrompt || null,
+          custom_user_template: customUserTemplate || null,
         }),
       });
 
@@ -280,6 +286,8 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
               setCaption(data.content);
             } else if (data.type === "prompt") {
               setPrompts((prev) => ({ ...prev, [reportModel]: data.content }));
+            } else if (data.type === "filled_prompt") {
+              setFilledPrompts((prev) => ({ ...prev, [reportModel]: data.content }));
             } else if (data.type === "token") {
               setReports((prev) => ({ ...prev, [reportModel]: (prev[reportModel] || "") + data.content }));
             } else if (data.type === "done") {
@@ -308,14 +316,63 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
     return autoSelectedPipeline;
   };
 
+  const loadSampleCase = async () => {
+    setIsLoading(true);
+    setStatus("Generating sample radiograph for evaluation...");
+    setCurrentStep(1);
+    setStep1Loading(true);
+
+    // Create synthetic radiograph canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.fillStyle = "#090B0E";
+      ctx.fillRect(0, 0, 512, 512);
+
+      const grad = ctx.createRadialGradient(256, 230, 40, 256, 230, 210);
+      grad.addColorStop(0, "rgba(235, 240, 248, 0.85)");
+      grad.addColorStop(0.4, "rgba(175, 190, 210, 0.55)");
+      grad.addColorStop(0.7, "rgba(70, 85, 105, 0.25)");
+      grad.addColorStop(1, "rgba(9, 11, 14, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(256, 230, 170, 150, 0, 0, 2 * Math.PI);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(220, 230, 240, 0.65)";
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(256, 70); ctx.lineTo(256, 430); ctx.stroke();
+
+      for (let i = 0; i < 7; i++) {
+        const y = 130 + i * 38;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(256 - 75, y, 70, -0.3, 0.8 * Math.PI); ctx.stroke();
+        ctx.beginPath(); ctx.arc(256 + 75, y, 70, 0.2 * Math.PI, 1.3 * Math.PI); ctx.stroke();
+      }
+    }
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], "sample_mimic_cxr_case.png", { type: "image/png" });
+        diagnoseImage(file, "chexbert");
+      } else {
+        setIsLoading(false);
+      }
+    }, "image/png");
+  };
+
   return {
     diagnoseImage,
     generateReport,
+    loadSampleCase,
     status,
     currentStep,
     retrievedRecords,
     reports,
     prompts,
+    filledPrompts,
     caption,
     isLoading,
     error,
@@ -335,3 +392,4 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
     step3Error,
   };
 }
+

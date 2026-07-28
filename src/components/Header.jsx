@@ -1,141 +1,327 @@
-import React, { useEffect } from 'react';
-import { Activity, Server, Stethoscope, Wifi, WifiOff, RefreshCw, Sparkles, ShieldCheck, Cpu, Database, GitMerge, CheckCircle2, Loader2, Plus, Image } from 'lucide-react';
-import { API_BASE } from '../config';
+import React, { useEffect, useState } from 'react';
+import { Activity, ChevronDown, Sun, Moon, SlidersHorizontal } from 'lucide-react';
 
-export default function Header({ 
-  isLiveServer, 
-  onToggleLiveServer, 
-  isServerHealthy, 
-  onCheckHealth, 
-  hasActiveDiagnosis, 
-  onResetUpload, 
-  selectedModel, 
+const MODELS = ['llama3.2', 'meditron:7b', 'mistral:latest', 'qwen2.5vl:7b'];
+
+export default function Header({
+  isServerHealthy,
+  onCheckHealth,
+  hasActiveDiagnosis,
+  onResetUpload,
+  selectedModel,
   onSelectModel,
-  selectedPipeline,
-  onSelectPipeline,
-  currentStep,
   status,
-  isLoading
+  isLoading,
+  showMetrics,
+  onToggleMetrics,
+  uploadedCaseDetails,
+  reportModel,
+  onReportModelChange,
+  theme = 'light',
+  onToggleTheme,
+  onOpenPromptModal,
 }) {
-  
+  const [modelOpen, setModelOpen] = useState(false);
+
   useEffect(() => {
     onCheckHealth();
-    const interval = setInterval(onCheckHealth, 5000);
-    return () => clearInterval(interval);
+    const iv = setInterval(onCheckHealth, 6000);
+    return () => clearInterval(iv);
   }, [onCheckHealth]);
 
-  const modelOptions = [
-    { id: 'llama3.2', name: 'Llama-3.2 (3B)' },
-    { id: 'meditron:7b', name: 'Meditron (7B Clinical)' },
-    { id: 'mistral:latest', name: 'Mistral (7B General)' },
-    { id: 'qwen2.5vl:7b', name: 'Qwen2.5-VL (7B Vision)' }
-  ];
-
-  const steps = [
-    { id: 1, label: "1. Similarity Search", icon: Database },
-    { id: 2, label: "2. Fetch Images", icon: Image },
-    { id: 3, label: "3. LLM Report", icon: Sparkles },
-  ];
+  useEffect(() => {
+    const close = (e) => { if (!e.target.closest('#model-selector')) setModelOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
 
   return (
-    <header className="border-b border-[#E2E8F0] bg-[#FFFFFF] sticky top-0 z-50 shadow-2xs w-full">
-      <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-center justify-between py-2.5 md:h-16 gap-3">
-          
-          {/* Brand Logo & Title (LEFT) */}
-          <div className="flex items-center space-x-3 shrink-0">
-            <div className="p-2 bg-[#0F172A] rounded-xl shadow-2xs flex items-center justify-center shrink-0">
-              <Activity className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-[#0F172A] flex items-center gap-1.5">
-                  MIMIC-CXR <span className="text-indigo-600">Multimodal RAG</span>
-                </h1>
-                <span className="text-[9px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 font-semibold uppercase tracking-wide font-mono">
-                  MSc Dissertation
+    <header
+      style={{
+        height: 48,
+        background: 'var(--panel-bg)',
+        borderBottom: '1px solid var(--border)',
+        boxShadow: 'var(--shadow)',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 16px',
+        gap: 14,
+        flexShrink: 0,
+        zIndex: 50,
+        position: 'relative',
+      }}
+    >
+      {/* LEFT — System name */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <Activity style={{ width: 16, height: 16, color: 'var(--cyan)', flexShrink: 0 }} />
+        <span
+          className="font-display"
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--text-secondary)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Multimodal RAG Workstation
+        </span>
+      </div>
+
+      {/* CENTER — Case info / pipeline status */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, overflow: 'hidden' }}>
+        {hasActiveDiagnosis && uploadedCaseDetails ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: 'var(--text-secondary)' }}>
+              CASE #{uploadedCaseDetails.case_id}
+            </span>
+            {uploadedCaseDetails.label_chexbert_primary && (
+              <>
+                <span style={{ width: 1, height: 12, background: 'var(--border)' }} />
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: 'var(--cyan)' }}>
+                  {uploadedCaseDetails.label_chexbert_primary}
                 </span>
-              </div>
-              <p className="text-[10px] text-[#64748B] hidden xl:block font-medium">
-                Dr. Shaheen Khatoon (Supervisor) • University of East London
-              </p>
-            </div>
+              </>
+            )}
+            {status && (
+              <>
+                <span style={{ width: 1, height: 12, background: 'var(--border)' }} />
+                <span style={{ fontSize: 12, color: 'var(--text-disabled)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {status}
+                </span>
+              </>
+            )}
           </div>
+        ) : status && isLoading ? (
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.02em' }}>{status}</span>
+        ) : (
+          <span
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 13,
+              letterSpacing: '0.06em',
+              color: 'var(--text-disabled)',
+              textTransform: 'uppercase',
+            }}
+          >
+            MIMIC-CXR · 30,600 Cases · Qdrant Vector DB
+          </span>
+        )}
+      </div>
 
-          {/* TELEMETRY PIPELINE STAGES (CRISP RECTANGULAR BADGES) */}
-          {hasActiveDiagnosis && (
-            <div className="flex items-center space-x-1.5 bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-1.5 rounded-xl text-xs overflow-x-auto no-scrollbar">
-              <span className="text-[10px] font-bold uppercase text-slate-700 mr-1 shrink-0 hidden sm:inline">Telemetry:</span>
-              {steps.map((step) => {
-                const isDone = currentStep > step.id || currentStep === 4;
-                const isCurrent = currentStep === step.id;
-                const Icon = step.icon;
+      {/* RIGHT — Controls */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
 
-                return (
-                  <div 
-                    key={step.id}
-                    className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] transition-all duration-200 shrink-0 border ${
-                      isDone 
-                        ? 'bg-[#F0FDF4] text-[#16A34A] border-[#BBF7D0] font-bold' 
-                        : isCurrent 
-                          ? 'bg-indigo-50 text-indigo-700 border-indigo-300 font-bold ring-1 ring-indigo-300 animate-pulse' 
-                          : 'bg-[#FFFFFF] text-[#64748B] border-[#E2E8F0] font-medium'
-                    }`}
-                  >
-                    {isDone ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#16A34A] shrink-0" />
-                    ) : (
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-indigo-600' : 'text-[#94A3B8]'}`} />
-                    )}
-                    <span className="whitespace-nowrap font-semibold">{step.label}</span>
-                  </div>
-                );
-              })}
+        {/* Edit Prompt Button (Modal Trigger) */}
+        <button
+          id="btn-open-prompt-modal"
+          onClick={onOpenPromptModal}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'var(--surface-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            padding: '5px 11px',
+            color: 'var(--text-primary)',
+            fontSize: 12,
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'var(--blue)';
+            e.currentTarget.style.color = 'var(--blue)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'var(--border)';
+            e.currentTarget.style.color = 'var(--text-primary)';
+          }}
+        >
+          <SlidersHorizontal style={{ width: 14, height: 14 }} />
+          Edit Prompt
+        </button>
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 18, background: 'var(--border)' }} />
+
+        {/* Theme Toggle (Sun / Moon) */}
+        <button
+          id="theme-toggle-btn"
+          onClick={onToggleTheme}
+          title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 30,
+            height: 30,
+            background: 'var(--surface-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'var(--blue)';
+            e.currentTarget.style.color = 'var(--text-primary)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'var(--border)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+          }}
+        >
+          {theme === 'light' ? (
+            <Moon style={{ width: 15, height: 15 }} />
+          ) : (
+            <Sun style={{ width: 15, height: 15 }} />
+          )}
+        </button>
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 18, background: 'var(--border)' }} />
+
+        {/* Model selector */}
+        <div style={{ position: 'relative' }} id="model-selector">
+          <button
+            onClick={() => setModelOpen(o => !o)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              background: 'var(--surface-bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              padding: '5px 10px',
+              color: 'var(--text-secondary)',
+              fontSize: 13,
+              fontFamily: "'JetBrains Mono', monospace",
+              cursor: 'pointer',
+              transition: 'border-color 0.15s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--blue)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+          >
+            {reportModel || selectedModel}
+            <ChevronDown style={{ width: 12, height: 12, flexShrink: 0 }} />
+          </button>
+
+          {modelOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 4px)',
+                right: 0,
+                background: 'var(--panel-bg)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                zIndex: 100,
+                minWidth: 150,
+                overflow: 'hidden',
+                boxShadow: 'var(--shadow)',
+              }}
+            >
+              {MODELS.map(m => (
+                <button
+                  key={m}
+                  onClick={() => { (onReportModelChange || onSelectModel)?.(m); setModelOpen(false); }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '8px 14px',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontFamily: "'JetBrains Mono', monospace",
+                    color: (reportModel || selectedModel) === m ? 'var(--blue)' : 'var(--text-secondary)',
+                    background: (reportModel || selectedModel) === m ? 'var(--surface-bg)' : 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid var(--border)',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-bg)'}
+                  onMouseLeave={e => e.currentTarget.style.background = (reportModel || selectedModel) === m ? 'var(--surface-bg)' : 'transparent'}
+                >
+                  {m}
+                </button>
+              ))}
             </div>
           )}
-
-          {/* RIGHT ACTION BAR: Model Selector, Pipeline Selector, Plus Button & Compact Live Icon */}
-          <div className="flex items-center space-x-2 shrink-0">
-            
-
-
-
-            {/* Compact Plus Icon Button to Upload New Radiograph */}
-            {hasActiveDiagnosis && (
-              <button
-                onClick={onResetUpload}
-                className="flex items-center justify-center p-2 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
-                title="Upload New Radiograph"
-              >
-                <Plus className="w-4 h-4 text-white stroke-[2.5]" />
-              </button>
-            )}
-
-            {/* Compact Minimal Live Connection Status Icon Badge */}
-            <button
-              onClick={onToggleLiveServer}
-              className="flex items-center justify-center p-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] hover:bg-[#F1F5F9] transition-all cursor-pointer shrink-0 relative group"
-              title={`FastAPI Backend: ${isLiveServer ? 'HuggingFace Space Live' : 'Simulated Mode'}`}
-            >
-              {isServerHealthy ? (
-                <div className="flex items-center space-x-1.5 px-1">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#16A34A] opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#16A34A]"></span>
-                  </span>
-                  <Wifi className="w-3.5 h-3.5 text-[#16A34A]" />
-                </div>
-              ) : (
-                <div className="flex items-center space-x-1.5 px-1">
-                  <span className="h-2 w-2 rounded-full bg-[#D97706]"></span>
-                  <WifiOff className="w-3.5 h-3.5 text-[#D97706]" />
-                </div>
-              )}
-            </button>
-
-          </div>
-
         </div>
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 18, background: 'var(--border)' }} />
+
+        {/* System Performance button */}
+        <button
+          id="btn-system-performance"
+          onClick={onToggleMetrics}
+          style={{
+            fontSize: 13,
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            color: showMetrics ? 'var(--blue)' : 'var(--text-secondary)',
+            background: 'none',
+            border: 'none',
+            borderBottom: `1px solid ${showMetrics ? 'var(--blue)' : 'transparent'}`,
+            padding: '2px 0',
+            cursor: 'pointer',
+            transition: 'color 0.15s, border-color 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = showMetrics ? 'var(--blue)' : 'var(--text-secondary)'; }}
+        >
+          Metrics
+        </button>
+
+        {/* New Case button */}
+        {hasActiveDiagnosis && (
+          <button
+            onClick={onResetUpload}
+            style={{
+              fontSize: 13,
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: 'var(--text-secondary)',
+              background: 'none',
+              border: 'none',
+              borderBottom: '1px solid transparent',
+              padding: '2px 0',
+              cursor: 'pointer',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+          >
+            New Case
+          </button>
+        )}
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 18, background: 'var(--border)' }} />
+
+        {/* Connection status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }} title={`Backend: ${isServerHealthy ? 'Connected' : 'Disconnected'}`}>
+          <div
+            className="dot"
+            style={{ background: isServerHealthy ? 'var(--green)' : 'var(--red)', width: 8, height: 8 }}
+          />
+          <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-disabled)', letterSpacing: '0.04em' }}>
+            {isServerHealthy ? 'LIVE' : 'OFFLINE'}
+          </span>
+        </div>
+
       </div>
     </header>
   );

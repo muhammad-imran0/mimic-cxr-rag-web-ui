@@ -1,143 +1,433 @@
+/* ═══════════════════════════════════════════════════════════════
+   MULTIMODAL RAG WORKSTATION — Design System & Theme Engine
+   Clinical Light (Default for dissertation) & Clinical Dark
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --bg-light: #F8FAFC;
-    --card-white: #FFFFFF;
-    --slate-dark: #0F172A;
-    --indigo-primary: #2563EB;
-    --green-success: #16A34A;
-    --border-slate: #E2E8F0;
-    --text-slate-muted: #64748B;
-  }
+/* ── Light Theme Tokens (Clinical Light — Default) ── */
+:root, [data-theme="light"] {
+  /* Background layers (light to lighter) */
+  --ws-bg:      #F7F8FA;  /* root workspace — very light cool grey */
+  --panel-bg:   #FFFFFF;  /* panel/section backgrounds — white */
+  --surface-bg: #F0F2F5;  /* inputs, dropdowns, alt rows */
+  --border:     #E1E4E8;  /* dividers/borders — light grey, visible but subtle */
+  --shadow:     0 2px 8px rgba(0, 0, 0, 0.05);
 
-  html, body, #root {
-    max-width: 100vw;
-    overflow-x: hidden;
-  }
+  /* Text hierarchy */
+  --text-primary:   #1A1D23;  /* main readable text — near-black */
+  --text-secondary: #5B6470;  /* labels, metadata — medium grey */
+  --text-disabled:  #9CA3AF;  /* placeholder/disabled text — soft grey */
 
-  body {
-    background: #F8FAFC;
-    color: #0F172A;
-    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
-    min-height: 100vh;
-  }
+  /* Accent colors (used SPARINGLY — small elements only) */
+  --blue:  #2563EB;  /* primary actions + active states */
+  --green: #16A34A;  /* MATCH badges */
+  --red:   #DC2626;  /* MISMATCH badges */
+  --amber: #D97706;  /* fallback/uncertain states */
+  --cyan:  #0891B2;  /* X-ray cyan: XAI + active pipeline only */
+
+  /* Upload & Film Slot */
+  --film-slot-bg:     #F0F2F5;
+  --film-slot-border: #C5CAD3;
+  --film-slot-icon:   #5B6470;
+
+  /* Data Table & Alt Rows */
+  --table-alt-bg:     #FAFBFC;
+  --table-hover-bg:   #F0F2F5;
+
+  /* Terminal & Code areas */
+  --terminal-bg:      #FFFFFF;
+  --terminal-border:  #E1E4E8;
+  --terminal-text:    #1A1D23;
 }
 
-/* 2026 Modern Clinical SaaS Aesthetics */
-.glass-panel {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05);
+/* ── Dark Theme Tokens (Clinical Dark — Live Demo) ── */
+[data-theme="dark"] {
+  /* Background layers */
+  --ws-bg:      #0C0F14;  /* root workspace — near-black, blue undertone */
+  --panel-bg:   #141821;  /* panel/section backgrounds */
+  --surface-bg: #1C2130;  /* inputs, dropdowns, alt rows */
+  --border:     #2A3040;  /* all dividers */
+  --shadow:     none;
+
+  /* Text hierarchy */
+  --text-primary:   #E8ECF2;  /* main readable text */
+  --text-secondary: #8B95A8;  /* labels, metadata */
+  --text-disabled:  #64748B;  /* barely visible */
+
+  /* Accent colors */
+  --blue:  #3B82F6;  /* primary actions + active states */
+  --green: #22C55E;  /* MATCH badges */
+  --red:   #EF4444;  /* MISMATCH badges */
+  --amber: #F59E0B;  /* uncertain/fallback */
+  --cyan:  #06B6D4;  /* XAI + active pipeline */
+
+  /* Upload & Film Slot */
+  --film-slot-bg:     #070A0E;
+  --film-slot-border: #2A3040;
+  --film-slot-icon:   #8B95A8;
+
+  /* Data Table & Alt Rows */
+  --table-alt-bg:     #1C2130;
+  --table-hover-bg:   #1F2535;
+
+  /* Terminal & Code areas */
+  --terminal-bg:      #080B10;
+  --terminal-border:  #2A3040;
+  --terminal-text:    #38BDF8;
 }
 
-.glass-panel-accent {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
-}
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #F8FAFC;
-}
-::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Custom Markdown Formatting for Reports (prose-modern) */
-.prose-modern h1, .prose-modern h2, .prose-modern h3, .prose-modern h4 {
-  color: #0F172A;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin-top: 1.1em;
-  margin-bottom: 0.5em;
-  line-height: 1.3;
-}
-
-.prose-modern h1 { font-size: 1.25rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 0.4rem; }
-.prose-modern h2 { font-size: 1.05rem; color: #0F172A; }
-.prose-modern h3 { font-size: 0.95rem; color: #2563EB; }
-
-.prose-modern p {
-  margin-bottom: 0.75em;
-  line-height: 1.65;
-  color: #334155;
-}
-
-.prose-modern ul, .prose-modern ol {
-  margin-top: 0.4em;
-  margin-bottom: 0.75em;
-  padding-left: 1.3em;
-}
-
-.prose-modern ul { list-style-type: disc; }
-.prose-modern ol { list-style-type: decimal; }
-
-.prose-modern li {
-  margin-bottom: 0.35em;
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--ws-bg);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
   line-height: 1.6;
-  color: #334155;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.prose-modern strong {
-  color: #0F172A;
-  font-weight: 700;
+/* ── Subtle Top Border Gradient Accent ── */
+#root::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #2563EB 0%, #0891B2 100%);
+  z-index: 1000;
+  pointer-events: none;
 }
 
-.prose-modern blockquote {
-  border-left: 3px solid #2563EB;
-  padding-left: 1rem;
-  margin-left: 0;
-  margin-right: 0;
-  color: #1E40AF;
-  font-style: italic;
-  background: #EFF6FF;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  border-radius: 0 0.375rem 0.375rem 0;
+/* Selection */
+::selection { background: rgba(37, 99, 235, 0.2); color: var(--text-primary); }
+
+/* ── Typography utilities ── */
+.font-display {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+.font-mono, code, pre {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.panel-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.mono-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
-.prose-modern code {
-  background: #F1F5F9;
-  color: #2563EB;
-  padding: 0.2em 0.4em;
-  border-radius: 0.25rem;
-  font-size: 0.85em;
-  font-family: monospace;
+/* ── Panel structure ── */
+.ws-panel {
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  border-radius: 8px;
+}
+.ws-panel:last-child { border-right: none; }
+
+.panel-section {
+  border-bottom: 1px solid var(--border);
+  padding: 20px;
+}
+.panel-section:last-child { border-bottom: none; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-disabled); }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Buttons ── */
+.btn-primary {
+  background: var(--blue);
+  color: #ffffff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:active { opacity: 0.75; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.btn-ghost:hover { border-color: var(--blue); color: var(--text-primary); }
+
+/* ── Inputs & Textareas Focus Polish ── */
+input[type="text"], textarea {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input[type="text"]::placeholder, textarea::placeholder {
+  color: var(--text-disabled);
+}
+input[type="text"]:focus, textarea:focus {
+  outline: none !important;
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
 }
 
+/* ── Status dots ── */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.dot-green { background: var(--green); }
+.dot-red { background: var(--red); }
+.dot-cyan { background: var(--cyan); }
+.dot-amber { background: var(--amber); }
+.dot-dim { background: var(--border); }
+
+/* ── Film slot upload area ── */
+.film-slot {
+  background: var(--film-slot-bg);
+  border: 1.5px dashed var(--film-slot-border);
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  overflow: hidden;
+  border-radius: 8px;
+}
+.film-slot:hover { border-color: var(--blue); }
+.film-slot.dragging { border-color: var(--blue); box-shadow: inset 0 0 24px rgba(37, 99, 235, 0.08); }
+
+/* Crosshair overlay */
+.film-slot::before,
+.film-slot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.film-slot::before {
+  background:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 100% 50%, 50% 100%;
+  background-position: center;
+  opacity: 0.4;
+}
+
+/* ── Evidence strip images ── */
+.evidence-thumb {
+  background: #000000; /* Radiographs keep dark background frame specifically */
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.evidence-thumb.active { border-top: 2px solid var(--cyan); }
+.evidence-thumb:hover { border-color: var(--blue); }
+
+/* ── Clinical document report ── */
+.clinical-doc {
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
+}
+.clinical-doc .section-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 8px;
+  margin-top: 20px;
+}
+.clinical-doc p { color: var(--text-primary); font-size: 15px; line-height: 1.7; margin-bottom: 12px; }
+.clinical-doc ul { padding-left: 20px; margin-bottom: 12px; }
+.clinical-doc li { color: var(--text-primary); font-size: 15px; line-height: 1.7; margin-bottom: 6px; }
+.clinical-doc strong { color: var(--text-primary); font-weight: 600; }
+
+/* ── Prompt terminal ── */
+.prompt-terminal {
+  background: var(--terminal-bg);
+  color: var(--terminal-text);
+  border: 1px solid var(--terminal-border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 16px 20px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+.tpl-var { color: var(--amber); font-weight: 600; }
+
+/* ── XAI lightbox ── */
+.lightbox-panel {
+  background: #000000; /* Radiographs keep dark surround */
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  position: relative;
+}
+.lightbox-panel.xai-active { border-color: rgba(8, 145, 178, 0.4); box-shadow: 0 0 0 1px rgba(8, 145, 178, 0.15); }
+
+/* Underline-only input */
+.underline-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 6px 0;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+.underline-input::placeholder { color: var(--text-disabled); }
+.underline-input:focus { border-bottom-color: var(--cyan); box-shadow: none !important; }
+
+/* ── Metrics data wall ── */
+.data-wall table { width: 100%; border-collapse: collapse; background: var(--panel-bg); }
+.data-wall th {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-align: right;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.data-wall th:first-child { text-align: left; }
+.data-wall td {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 10px 16px;
+  text-align: right;
+  color: var(--text-secondary);
+}
+.data-wall td:first-child { text-align: left; font-family: 'Inter', sans-serif; color: var(--text-primary); font-size: 13px; }
+.data-wall tr:nth-child(even) td { background: var(--table-alt-bg); }
+.data-wall tr.row-best td { color: var(--cyan); font-weight: 600; }
+.data-wall tr.row-best td:first-child { color: var(--text-primary); }
+.data-wall tr.row-worst td { color: var(--text-disabled); }
+.data-wall tr.row-worst td:first-child { color: var(--text-disabled); }
+.data-wall tr.row-ensemble { border-top: 1px solid var(--border); }
+.data-wall tr:hover td { background: var(--table-hover-bg); }
+
+/* ── Pipeline film strip ── */
+.film-strip {
+  height: 64px;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 10px;
+  overflow-x: auto;
+  box-shadow: var(--shadow);
+}
+.film-strip-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.film-strip-node .node-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-bg);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.film-strip-node.active .node-icon { border-color: var(--blue); color: var(--blue); background: rgba(37, 99, 235, 0.1); }
+.film-strip-node.done .node-icon { border-color: var(--green); color: var(--green); background: rgba(22, 163, 74, 0.1); }
+.film-strip-connector { width: 28px; height: 1px; background: var(--border); flex-shrink: 0; margin-top: -14px; }
+.film-strip-connector.done { background: var(--green); }
+
+.candidate-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+.candidate-dot.kept { background: var(--text-secondary); }
+.candidate-dot.selected { background: var(--green); }
+
+/* ── Fade in animation ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.25s ease forwards; }
+
+/* ── Glow pulse for active elements ── */
+@keyframes cyanPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.pulse-cyan { animation: cyanPulse 1.5s ease-in-out infinite; }
+
+/* ── Tab underline active state ── */
+.tab-btn {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: 10px 16px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.tab-btn:hover { color: var(--text-primary); }
+.tab-btn.active { color: var(--text-primary); border-bottom-color: var(--blue); }
+
+/* ── Print ── */
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  #printable-radiology-report, #printable-radiology-report * {
-    visibility: visible;
-  }
+  body * { visibility: hidden; }
+  #printable-radiology-report, #printable-radiology-report * { visibility: visible; }
   #printable-radiology-report {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    position: absolute; left: 0; top: 0; width: 100%;
+    background: white !important; color: black !important;
   }
 }

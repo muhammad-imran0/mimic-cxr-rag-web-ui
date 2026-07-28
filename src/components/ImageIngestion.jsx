@@ -1,106 +1,184 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, Loader2, Sparkles, ShieldCheck, Stethoscope, GraduationCap } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 
-export default function ImageIngestion({ diagnoseImage, liveStatus, isLoadingLive }) {
+/* ═══════════════════════════════════════════════════
+   FILM SLOT — Upload area styled as a radiograph slot
+   Clinical Light/Dark surround, crosshair centre
+   ═══════════════════════════════════════════════════ */
+
+export default function ImageIngestion({ diagnoseImage, liveStatus, isLoadingLive, onLoadSample }) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
+  const handleDragOver  = (e) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = ()  => setIsDragging(false);
 
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      processFile(files[0]);
-    }
+    const f = e.dataTransfer.files?.[0];
+    if (f) processFile(f);
   };
 
   const handleFileInput = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0]);
-    }
+    const f = e.target.files?.[0];
+    if (f) processFile(f);
   };
 
-  const processFile = async (file) => {
+  const processFile = (file) => {
     if (diagnoseImage) diagnoseImage(file);
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-center space-y-5 py-2 px-4 h-full my-auto">
-      
-      {/* Hero Greeting with Compact Typography */}
-      <div className="text-center space-y-2.5">
-        <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] text-[#0F766E] text-[11px] font-semibold shadow-2xs">
-          <GraduationCap className="w-3.5 h-3.5 text-[#0F766E]" />
-          <span>MSc Dissertation Project • University of East London</span>
-        </div>
-        
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#0F172A] tracking-tight leading-snug max-w-2xl mx-auto">
-          A Multimodal Retrieval-Augmented Generation System for Explainable Diagnosis and Evidence-Grounded Report Generation
-        </h2>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        padding: '24px 20px',
+        gap: 18,
+      }}
+    >
+      {/* ── Film slot ── */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*,.dcm"
+        onChange={handleFileInput}
+        style={{ display: 'none' }}
+      />
 
-        <p className="text-xs font-semibold text-[#64748B]">
-          Supervisor: <strong className="text-[#0F172A]">Dr. Shaheen Khatoon</strong>
-        </p>
-        
-        <p className="text-xs text-[#334155] max-w-xl mx-auto font-normal leading-relaxed">
-          Upload a chest radiograph to execute real-time <strong>BiomedCLIP visual encoding</strong>, vector retrieval against 30,600 <strong>MIMIC-CXR cases in Qdrant</strong>, and automated clinical report generation.
-        </p>
+      <div
+        onClick={() => !isLoadingLive && fileInputRef.current?.click()}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`film-slot ${isDragging ? 'dragging' : ''}`}
+        style={{
+          width: '100%',
+          aspectRatio: '1',
+          maxWidth: 290,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: isLoadingLive ? 'wait' : 'pointer',
+          borderRadius: 10,
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Click to upload chest radiograph"
+        onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
+      >
+        {isLoadingLive ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, zIndex: 1 }}>
+            <Loader2
+              style={{ width: 24, height: 24, color: 'var(--blue)', animation: 'spin 1s linear infinite' }}
+            />
+            <span
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                color: 'var(--blue)',
+                letterSpacing: '0.06em',
+                textAlign: 'center',
+                maxWidth: 220,
+                fontWeight: 600,
+              }}
+            >
+              {liveStatus || 'PROCESSING...'}
+            </span>
+          </div>
+        ) : (
+          /* Crosshair + label */
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, zIndex: 1, pointerEvents: 'none' }}>
+            {/* Crosshair SVG */}
+            <svg width="36" height="36" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="16" y1="0" x2="16" y2="12" stroke="var(--film-slot-icon)" strokeWidth="1.2"/>
+              <line x1="16" y1="20" x2="16" y2="32" stroke="var(--film-slot-icon)" strokeWidth="1.2"/>
+              <line x1="0" y1="16" x2="12" y2="16" stroke="var(--film-slot-icon)" strokeWidth="1.2"/>
+              <line x1="20" y1="16" x2="32" y2="16" stroke="var(--film-slot-icon)" strokeWidth="1.2"/>
+              <rect x="12" y="12" width="8" height="8" stroke="var(--film-slot-icon)" strokeWidth="1" fill="none"/>
+            </svg>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <span
+                style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                Load Radiograph
+              </span>
+              <span
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 10,
+                  color: 'var(--text-disabled)',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                DICOM · PNG · JPEG
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Main Upload Box with Compact Dimensions */}
-      <div className="bg-[#FFFFFF] rounded-2xl p-6 shadow-md border border-[#E2E8F0] relative overflow-hidden w-full">
-        
-        {/* Hidden File Input */}
-        <input 
-          type="file" 
-          ref={fileInputRef}
-          accept="image/*,.dcm"
-          onChange={handleFileInput}
-          className="hidden" 
-        />
-
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-300 relative cursor-pointer group ${
-            isDragging 
-              ? 'border-indigo-600 bg-indigo-50/50 shadow-md scale-[1.01]' 
-              : 'border-[#CBD5E1] hover:border-slate-800 bg-[#F8FAFC] hover:bg-[#FFFFFF] shadow-2xs'
-          }`}
+      {/* ── Sample Case Button ── */}
+      {onLoadSample && (
+        <button
+          type="button"
+          onClick={onLoadSample}
+          disabled={isLoadingLive}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 11,
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 600,
+            letterSpacing: '0.04em',
+            color: 'var(--blue)',
+            background: 'var(--surface-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            padding: '7px 14px',
+            cursor: isLoadingLive ? 'not-allowed' : 'pointer',
+            transition: 'all 0.15s ease',
+            opacity: isLoadingLive ? 0.6 : 1,
+          }}
+          onMouseEnter={e => { if (!isLoadingLive) e.currentTarget.style.borderColor = 'var(--blue)'; }}
+          onMouseLeave={e => { if (!isLoadingLive) e.currentTarget.style.borderColor = 'var(--border)'; }}
         >
-          <div className="p-4 bg-indigo-50 rounded-xl group-hover:scale-110 group-hover:bg-[#0F172A] transition-all duration-300 mb-3 shadow-2xs border border-indigo-100">
-            {isLoadingLive ? (
-              <Loader2 className="w-8 h-8 text-indigo-600 group-hover:text-white animate-spin" />
-            ) : (
-              <UploadCloud className="w-8 h-8 text-indigo-600 group-hover:text-white transition-colors" />
-            )}
-          </div>
-          
-          <h3 className="text-xl font-extrabold text-[#0F172A] tracking-tight">
-            {isLoadingLive ? 'Ingesting Radiograph Pipeline...' : 'Upload Medical Chest Radiograph'}
-          </h3>
-          
-          <p className="text-xs text-[#64748B] mt-1.5 max-w-sm leading-relaxed font-medium">
-            {isLoadingLive ? (liveStatus || 'Computing visual embeddings & querying Qdrant vector database...') : 'Drag & drop DICOM or JPEG radiograph here, or click to browse files from your workstation.'}
-          </p>
+          <Sparkles style={{ width: 13, height: 13, color: 'var(--blue)' }} />
+          Load Sample MIMIC-CXR Case
+        </button>
+      )}
 
-          <div className="mt-5 flex items-center space-x-2 text-[11px] font-medium text-[#64748B] bg-[#FFFFFF] px-3.5 py-1.5 rounded-lg border border-[#E2E8F0] shadow-2xs">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#16A34A]" />
-            <span>Supports standard DICOM (.dcm), PNG, & JPEG image formats</span>
-          </div>
-        </div>
-
+      {/* ── Subtitle below slot ── */}
+      <div style={{ textAlign: 'center', maxWidth: 280 }}>
+        <p
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--text-secondary)',
+            marginBottom: 4,
+          }}
+        >
+          BiomedCLIP · Qdrant · RAG
+        </p>
+        <p style={{ fontSize: 10, color: 'var(--text-disabled)', lineHeight: 1.5 }}>
+          Vector similarity retrieval across 30,600 MIMIC-CXR cases with multimodal LLM report generation.
+        </p>
       </div>
 
     </div>
