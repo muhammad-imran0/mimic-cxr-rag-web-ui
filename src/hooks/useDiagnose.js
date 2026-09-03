@@ -190,10 +190,11 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
     let bestRecordsToUse = retrievedRecords;
 
     if (comparisons && uploadedCaseDetails) {
-      // Evaluate pipelines in priority order (LLM is preferred if there's a tie)
+      // Tie-break order: CheXbert > LLM > Hybrid > Text RAG > Keyword
       const pipelinesToEvaluate = [
-        { id: "llm", labelKey: "label_llm_primary", queryLabel: uploadedCaseDetails.label_llm_primary },
         { id: "chexbert", labelKey: "label_chexbert_primary", queryLabel: uploadedCaseDetails.label_chexbert_primary },
+        { id: "llm", labelKey: "label_llm_primary", queryLabel: uploadedCaseDetails.label_llm_primary },
+        { id: "hybrid", labelKey: "label_chexbert_primary", queryLabel: uploadedCaseDetails.label_chexbert_primary },
         { id: "text_rag", labelKey: "label_chexbert_primary", queryLabel: uploadedCaseDetails.label_chexbert_primary },
         { id: "keyword", labelKey: "label_keyword", queryLabel: uploadedCaseDetails.label_keyword }
       ];
@@ -211,7 +212,7 @@ export function useDiagnose(rawBaseUrl = API_BASE) {
           if (cLabel === qLabel) matchCount++;
         });
 
-        // We use > so that earlier items in the array win ties (e.g. LLM > CheXbert)
+        // Earlier list items win ties (CheXbert > LLM > Hybrid > Text RAG > Keyword)
         if (matchCount > maxMatches) {
           maxMatches = matchCount;
           bestPipeline = pipe.id;

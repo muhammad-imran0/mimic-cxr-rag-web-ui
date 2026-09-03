@@ -16,9 +16,31 @@ export default function VisualizationMatrix({ selectedCase, apiBase, uploadedIma
   const [isLoading, setIsLoading]       = useState(false);
   const [error, setError]               = useState(null);
   const [autoTriggered, setAutoTriggered] = useState(false);
+  const [nccResult, setNccResult]       = useState(null);
+  const [isAuditingNcc, setIsAuditingNcc] = useState(false);
 
   const base = (apiBase || 'http://localhost:8000').replace(/\/$/, '');
   const prevAutoLabel = useRef('');
+
+  const handleNccAudit = async () => {
+    if (!uploadedImagePreview) return;
+    setIsAuditingNcc(true);
+    try {
+      const res = await fetch(uploadedImagePreview);
+      const blob = await res.blob();
+      const fd = new FormData();
+      fd.append('file', blob, 'image.jpg');
+      const response = await fetch(`${base}/api/v1/xai/ncc-audit`, { method: 'POST', body: fd });
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      setNccResult(data);
+    } catch {
+      setError('Failed to compute NCC audit.');
+    } finally {
+      setIsAuditingNcc(false);
+    }
+  };
+
 
   // Auto-trigger on initial primary CheXbert class loaded
   useEffect(() => {
@@ -130,12 +152,44 @@ export default function VisualizationMatrix({ selectedCase, apiBase, uploadedIma
         >
           {isLoading ? 'Computing...' : 'Visualize'}
         </button>
+        <button
+          onClick={handleNccAudit}
+          disabled={isAuditingNcc || !uploadedImagePreview}
+          style={{
+            padding: '6px 12px',
+            fontSize: 12,
+            background: 'none',
+            border: '1px solid var(--border)',
+            borderRadius: 4,
+            color: 'var(--cyan)',
+            cursor: 'pointer',
+            fontFamily: "'JetBrains Mono', monospace",
+          }}
+        >
+          {isAuditingNcc ? 'Auditing NCC...' : 'Audit Reliability (NCC)'}
+        </button>
       </div>
+
+      {/* NCC Audit Result Card */}
+      {nccResult && (
+        <div style={{ padding: 12, borderRadius: 6, background: 'rgba(6, 182, 212, 0.08)', border: '1px solid var(--cyan)', fontSize: 12 }}>
+          <div style={{ fontWeight: 700, color: 'var(--cyan)', marginBottom: 4, fontFamily: "'Space Grotesk', sans-serif" }}>
+            NORMALIZED CROSS-CORRELATION (NCC) RELIABILITY AUDIT
+          </div>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-primary)', marginBottom: 6 }}>
+            Average NCC: <strong>{nccResult.average_ncc}</strong> (Edema vs Cardio: {nccResult.edema_vs_cardiomegaly} | Edema vs Normal: {nccResult.edema_vs_normal} | Cardio vs Normal: {nccResult.cardiomegaly_vs_normal})
+          </div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: 11, fontStyle: 'italic' }}>
+            {nccResult.interpretation}
+          </div>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
         <div style={{ fontSize: 13, color: 'var(--red)', background: 'rgba(239,68,68,0.06)', border: '1px solid var(--border)', padding: '8px 12px' }}>
           {error}
+
         </div>
       )}
 

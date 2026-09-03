@@ -174,10 +174,11 @@ export default function ImageIngestion({ diagnoseImage, liveStatus, isLoadingLiv
             marginBottom: 4,
           }}
         >
-          BiomedCLIP · Qdrant · RAG
+          DiagX-RAG · Multi-Level Explainable Medical RAG
         </p>
         <p style={{ fontSize: 10, color: 'var(--text-disabled)', lineHeight: 1.5 }}>
-          Vector similarity retrieval across 30,600 MIMIC-CXR cases with multimodal LLM report generation.
+          Diagnostic-aware retrieval across 29,101 MIMIC-CXR cases with multi-level XAI & Mistral-7B generation.
+
         </p>
       </div>
 
